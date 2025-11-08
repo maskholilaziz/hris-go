@@ -12,6 +12,7 @@ import (
 type Config struct {
 	AppPort     string `mapstructure:"APP_PORT"`
 	DatabaseURL string `mapstructure:"DATABASE_URL"`
+	JWTSecret   string `mapstructure:"JWT_SECRET"`
 }
 
 // LoadConfig adalah fungsi yang akan mencari dan membaca file konfigurasi.

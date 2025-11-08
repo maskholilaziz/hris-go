@@ -16,8 +16,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	// Import package internal kita
+
 	"github.com/maskholilaziz/hris-go/internal/config"
+	inhttp "github.com/maskholilaziz/hris-go/internal/handler/http"
 	"github.com/maskholilaziz/hris-go/internal/infrastructure/database"
+	"github.com/maskholilaziz/hris-go/internal/infrastructure/security"
+	"github.com/maskholilaziz/hris-go/internal/usecase"
+	"github.com/maskholilaziz/hris-go/pkg/util"
 )
 
 func main() {
@@ -31,6 +36,10 @@ func main() {
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("Tidak bisa memuat konfigurasi: %v", err)
+	}
+
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET harus di-set di file .env")
 	}
 
 	// 2. Buat Koneksi Database
@@ -53,6 +62,18 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	validate := util.NewValidator()
+
+	jwtService := security.NewJWTService(cfg.JWTSecret)
+
+	adminUserRepo := database.NewPostgresAdminUserRepo(dbPool)
+
+	adminAuthUsecase := usecase.NewAdminAuthUsecase(adminUserRepo, jwtService)
+	adminUserUsecase := usecase.NewAdminUserUsecase(adminUserRepo)
+
+	adminAuthHandler := inhttp.NewAdminAuthHandler(adminAuthUsecase, validate)
+	adminUserHandler := inhttp.NewAdminUserHandler(adminUserUsecase)
+
 	// ------------------------------------------------------------------------
 	// Routes / Endpoints
 	// ------------------------------------------------------------------------
@@ -60,23 +81,22 @@ func main() {
 	// Kita akan buat dua endpoint health check. Ini adalah "best practice":
 	// 1. /health (Liveness): Cek apakah aplikasi "hidup" (server web berjalan)
 	// 2. /ready (Readiness): Cek apakah aplikasi "siap" bekerja (DB terhubung)
-	r.Get("/health", func (w http.ResponseWriter, r *http.Request)  {
-		// Buat data response
-		response := map[string]string{
-			"status": "OK",
-		}
-
-		// Set header sebagai JSON
-		w.Header().Set("Content-Type", "application/json")
-
-		// Tulis response
-		json.NewEncoder(w).Encode(response)
-	})
+	r.Get("/health", healthCheckHandler)
 
 	// Untuk endpoint ini, kita perlu 'dbPool' untuk ping ke DB.
 	// Kita gunakan handler function biasa untuk men-demonstrasikan
 	// cara Chi menangani handler.
 	r.Get("/ready", readinessCheckHandler(dbPool))
+
+	r.Route("/superadmin", func(r chi.Router) {
+		r.Post("/login", adminAuthHandler.Login)
+		r.Post("/register", adminAuthHandler.Register)
+
+		r.Group(func(r chi.Router) {
+			r.Use(jwtService.SuperadminAuthMiddleware)
+			r.Get("/users", adminUserHandler.ListAdmins)
+		})
+	})
 
 	// ------------------------------------------------------------------------
 	// Menjalankan Server
@@ -116,6 +136,10 @@ func main() {
 	}
 
 	log.Println("Server berhenti dengan sukses.")
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	util.SuccessResponse(w, "Server is alive", nil)
 }
 
 // readinessCheckHandler adalah handler yang menerima 'dbPool'.
