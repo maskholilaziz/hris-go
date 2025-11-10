@@ -67,12 +67,15 @@ func main() {
 	jwtService := security.NewJWTService(cfg.JWTSecret)
 
 	adminUserRepo := database.NewPostgresAdminUserRepo(dbPool)
+	tenantRepo := database.NewPostgresTenantRepo(dbPool)
 
 	adminAuthUsecase := usecase.NewAdminAuthUsecase(adminUserRepo, jwtService)
 	adminUserUsecase := usecase.NewAdminUserUsecase(adminUserRepo)
+	tenantUsecase := usecase.NewTenantUsecase(tenantRepo)
 
 	adminAuthHandler := inhttp.NewAdminAuthHandler(adminAuthUsecase, validate)
 	adminUserHandler := inhttp.NewAdminUserHandler(adminUserUsecase)
+	tenantHandler := inhttp.NewTenantHandler(tenantUsecase, validate)
 
 	// ------------------------------------------------------------------------
 	// Routes / Endpoints
@@ -95,6 +98,12 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(jwtService.SuperadminAuthMiddleware)
 			r.Get("/users", adminUserHandler.ListAdmins)
+
+			r.Post("/tenants", tenantHandler.Create)
+			r.Get("/tenants", tenantHandler.List)
+			r.Get("/tenants/{id}", tenantHandler.GetByID)
+			r.Put("/tenants/{id}", tenantHandler.Update)
+			r.Delete("/tenants/{id}", tenantHandler.Delete)
 		})
 	})
 

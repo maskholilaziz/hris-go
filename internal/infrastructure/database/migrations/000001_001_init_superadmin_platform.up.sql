@@ -48,6 +48,7 @@ CREATE TABLE "tenants" (
   "id" UUID PRIMARY KEY,
   "name" VARCHAR(255) NOT NULL,
   "slug" VARCHAR(255) NOT NULL UNIQUE,
+  "company_email" VARCHAR(255) NULL,
   "status" VARCHAR(50) NOT NULL DEFAULT 'setup_pending' CHECK ("status" IN ('active', 'inactive', 'suspended', 'setup_pending')),
   "created_at" TIMESTAMPTZ DEFAULT (now()),
   "updated_at" TIMESTAMPTZ DEFAULT (now()),
@@ -61,6 +62,7 @@ CREATE TABLE "plans" (
   "description" TEXT NULL,
   "price" DECIMAL(15, 2) NOT NULL,
   "billing_cycle" VARCHAR(50) NOT NULL DEFAULT 'monthly' CHECK ("billing_cycle" IN ('monthly', 'yearly')),
+  "employee_limit" INT NOT NULL DEFAULT 50,
   "is_active" BOOLEAN NOT NULL DEFAULT TRUE,
   "created_at" TIMESTAMPTZ DEFAULT (now()),
   "updated_at" TIMESTAMPTZ DEFAULT (now()),
@@ -72,6 +74,7 @@ CREATE TABLE "features" (
   "name" VARCHAR(255) NOT NULL,
   "slug" VARCHAR(255) NOT NULL UNIQUE,
   "description" TEXT NULL,
+  "is_addon" BOOLEAN NOT NULL DEFAULT FALSE,
   "created_at" TIMESTAMPTZ DEFAULT (now()),
   "updated_at" TIMESTAMPTZ DEFAULT (now()),
   "deleted_at" TIMESTAMPTZ NULL
@@ -82,3 +85,9 @@ CREATE TABLE "feature_plan" (
   "plan_id" UUID NOT NULL REFERENCES "plans"("id") ON DELETE CASCADE,
   PRIMARY KEY ("feature_id", "plan_id")
 );
+
+CREATE INDEX ON "admin_role_user" ("admin_user_id");
+CREATE INDEX ON "admin_role_user" ("admin_role_id");
+CREATE INDEX ON "admin_permission_role" ("permission_id");
+CREATE INDEX ON "admin_permission_role" ("admin_role_id");
+CREATE INDEX ON "tenants" ("slug");

@@ -13,6 +13,7 @@ type PaginationQuery struct {
 	SortBy		string
 	SortDir		string
 	Search		string
+	Filters		map[string]any
 }
 
 func GetPaginationQuery(r *http.Request) PaginationQuery {
@@ -43,12 +44,25 @@ func GetPaginationQuery(r *http.Request) PaginationQuery {
 
 	search := query.Get("search")
 
+	filters := make(map[string]any)
+	for key, values := range query {
+		// Kita anggap 'reserved keys' bukan filter
+		if key == "page" || key == "limit" || key == "sort" || key == "search" {
+			continue
+		}
+		// Ambil nilai pertama saja
+		if len(values) > 0 {
+			filters[key] = values[0]
+		}
+	}
+
 	return PaginationQuery{
 		Page:		page,
 		Limit:		limit,
 		SortBy:		sortBy,
 		SortDir:	sortDir,
 		Search:		search,
+		Filters: 	filters,
 	}
 }
 
