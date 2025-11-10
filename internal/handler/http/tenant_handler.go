@@ -46,7 +46,6 @@ type TenantResponse struct {
 	Status       entity.StatusTenant  `json:"status"`
 	CreatedAt    time.Time            `json:"created_at"`
 	UpdatedAt    time.Time            `json:"updated_at"`
-	DeletedAt    *time.Time           `json:"deleted_at,omitempty"`
 }
 
 type ListTenantsResponse struct {
@@ -63,7 +62,6 @@ func newTenantResponse(t *entity.Tenant) TenantResponse {
 		Status:       t.Status,
 		CreatedAt:    t.CreatedAt,
 		UpdatedAt:    t.UpdatedAt,
-		DeletedAt:    t.DeletedAt,
 	}
 }
 

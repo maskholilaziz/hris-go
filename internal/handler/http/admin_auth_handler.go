@@ -7,8 +7,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/maskholilaziz/hris-go/internal/entity"
 	"github.com/maskholilaziz/hris-go/internal/usecase"
 	"github.com/maskholilaziz/hris-go/pkg/util"
 )
@@ -34,6 +37,22 @@ type RegisterRequest struct {
 	Name     string `json:"name" validate:"required,min=2"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=10,no_consecutive_spaces"`
+}
+
+type RegisterResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func newRegisterResponse(user *entity.AdminUser) RegisterResponse {
+	return RegisterResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
 }
 
 func (h *AdminAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -111,5 +130,5 @@ func (h *AdminAuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SuccessResponse(w, "Registrasi berhasil", user)
+	util.SuccessResponse(w, "Registrasi berhasil", newRegisterResponse(user))
 }
